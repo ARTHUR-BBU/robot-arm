@@ -1,56 +1,86 @@
-# Robot Arm — 3D Industrial Arm with Cursor Tracking
+# Robot Arm · 拴住的狼狗
 
-A Three.js industrial robot arm that tracks your mouse cursor like a chained wolfhound — smooth, aggressive, and alive.
+一只Three.js工业机械臂，像被链子拴住的狼狗一样追踪你的鼠标——凶猛、顺滑、充满攻击性。
 
-**Live Demo:** `npm run dev` → http://localhost:5173
+**本地运行：** `npm run dev` → http://localhost:5173
 
-## What It Does
+## 它能干嘛
 
-- **360° cursor tracking** — the arm follows your mouse in real-time across the entire hemisphere
-- **Predatory behavior system** — attention-based state machine (lurk → alert → stalk → lunge → snap → carry → release)
-- **Pose weight middleware** — continuous weighted blending between pose anchors (stand/ready/lunge/reach) instead of hard state transitions. No jerky jumps, naturally smooth.
-- **Factory scene** — conveyor belt with moving cargo boxes, overhead crane, industrial atmosphere
+- **360°鼠标追踪** — 机械臂在整个半球范围内实时跟踪你的光标
+- **捕猎行为系统** — 基于注意力值的状态驱动（潜伏 → 警觉 → 追击 → 冲刺 → 抓取 → 携带 → 释放）
+- **姿态权重中间层** — 核心创新：用连续权重混合替代离散状态机，姿态之间天然平滑过渡，不需要任何缓动代码
+- **工厂场景** — 传送带 + 移动货物箱 + 天车 + 工业氛围
 
-## Architecture Highlights
+## 核心架构：权重思维
 
-### Weight Thinking — Pose Middleware Layer
+### 问题
 
-The core innovation: instead of a discrete state machine driving pose transitions, we insert a **continuous weight layer** between the behavior system and the joint controller.
+传统做法是离散状态机——"站着"跳到"弯腰"跳到"前扑"。每次切换都是生硬的跳变，需要写一堆缓动函数，状态越多过渡组合爆炸。
+
+### 解法
+
+在行为系统和关节控制器之间，插入一层**连续权重**：
 
 ```
-Attention + Distance + Height (drivers)
-         ↓
-  4 Pose Anchors × Weights (0~1 continuous)
-         ↓
-  Weighted Average → Target joint values (j2, j3)
-         ↓
-  Lerp smoothing → Final pose
+注意力 + 距离 + 高度（驱动源）
+          ↓
+  4个姿态锚点 × 权重（0~1 连续值）
+          ↓
+  加权平均 → 目标关节值（j2, j3）
+          ↓
+  lerp 平滑 → 最终姿态
 ```
 
-This means the arm can be "30% standing, 70% ready" — naturally smooth transitions without any easing code. See [Weight Thinking skill](https://github.com/) for the general methodology.
+4个姿态锚点：
 
-### File Structure
+| 锚点 | j2（肩俯仰） | j3（肘弯曲） | 含义 |
+|------|------------|------------|------|
+| STAND | 0.0 | 0.05 | 竖直站立 |
+| READY | 0.4 | 1.2 | 半弯蓄力 |
+| LUNGE | 0.9 | 0.35 | 前扑 |
+| REACH | 1.2 | 0.15 | 极限伸直 |
+
+注意力低 → 多站；注意力高 + 远距离 → 前扑/伸直。
+
+机械臂可以同时是"30%站立 + 70%蓄力"——这就是权重的力量。**不硬切，不跳变，连续过渡自然发生。**
+
+### 为什么叫"拴住的狼狗"
+
+机械臂的行为节奏：
+
+- 大部分时间站直，微微转头嗅空气（低注意力）
+- 发现目标后身体压低，蓄力（关注）
+- 突然猛扑出去——但受臂长限制，像被链子拴住的狼狗扑向行人，扑到极限再弹回来
+- 抓到目标（鼠标）后叼起来，松口让它坠落
+
+### 文件结构
 
 ```
 src/
-├── main.js        — Scene, behavior system, pose weight middleware, main loop
-├── RobotArm.js    — Robot arm 3D model (joints, links, gripper, hydraulic lift)
-├── IKSolver.js    — 2-link IK solver with floor avoidance
-└── FakeCursor.js  — Custom cursor that hides during grab sequences
+├── main.js        — 场景、行为系统、姿态权重中间层、主循环
+├── RobotArm.js    — 机械臂3D模型（关节、连杆、夹爪、液压升降）
+├── IKSolver.js    — 2连杆IK求解器 + 地板防穿
+└── FakeCursor.js  — 自定义光标（抓取时隐藏系统光标）
 ```
 
-## Tech Stack
+## 技术栈
 
-- **Three.js** — 3D rendering
-- **Vite** — dev server + bundler
-- Zero frameworks, zero dependencies beyond Three.js
+- **Three.js** — 3D渲染
+- **Vite** — 开发服务器 + 打包
+- 零框架，Three.js之外零依赖
 
-## Run
+## 运行
 
 ```bash
 npm install
 npm run dev
 ```
+
+## 关于权重思维
+
+这个项目中的"姿态权重中间层"是一个通用方法论的具体落地——**权重思维（Weight Thinking）**：不问"是A还是B"，问"A多少、B多少"。适用于3D动画、用户状态、决策系统、任何"离散硬切导致生硬"的场景。
+
+详见 [权重系统与中间层架构](https://github.com/ARTHUR-BBU/robot-arm) 的方法论提炼。
 
 ## License
 
