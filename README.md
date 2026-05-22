@@ -1,57 +1,128 @@
-# Robot Arm · 拴住的狼狗
+# Robot Arm · 拴住的狼狗 🐺⛓️
+
+[中文](#中文) | [English](#english)
+
+---
+
+## English
+
+An industrial robot arm that tracks your mouse cursor like a chained wolfhound — aggressive, smooth, and alive. Built with Three.js.
+
+**Try it:**
+
+```bash
+git clone https://github.com/ARTHUR-BBU/robot-arm.git
+cd robot-arm
+npm install
+npm run dev
+# Open http://localhost:5173 in your browser
+```
+
+### How to Play
+
+Move your mouse around the page. The robot arm will:
+
+1. **Notice you** — head turns toward the cursor, body still calm
+2. **Get interested** — starts bending toward you, grip tightening
+3. **Stalk** — slowly closes in like a cat
+4. **Lunge** — sudden explosive snap at the cursor
+5. **Grab** — snatches the cursor, carries it around
+6. **Release** — drops it, waits for you to move again
+
+The arm has limited reach — like a wolfhound on a chain. It can lunge out fast but always snaps back. Try moving the mouse far away to see it stretch to its limit.
+
+### Core Innovation: Pose Weight Middleware
+
+Instead of hard-switching between poses (stand → crouch → lunge), we use **continuous weighted blending**:
+
+```
+Attention + Distance + Height (drivers)
+         ↓
+  4 Pose Anchors × Weights (0~1 continuous)
+         ↓
+  Weighted Average → Target joint values
+         ↓
+  Lerp → Final smooth pose
+```
+
+The arm can be "30% standing + 70% ready" — smooth transitions happen naturally, no easing code needed.
+
+| Anchor | Shoulder (j2) | Elbow (j3) | Meaning |
+|--------|--------------|-----------|---------|
+| STAND | 0.0 | 0.05 | Upright |
+| READY | 0.4 | 1.2 | Coiled |
+| LUNGE | 0.9 | 0.35 | Striking |
+| REACH | 1.2 | 0.15 | Max extension |
+
+### File Structure
+
+```
+src/
+├── main.js        — Scene, behavior system, pose weight middleware, main loop
+├── RobotArm.js    — Robot arm 3D model (joints, links, gripper, hydraulic lift)
+├── IKSolver.js    — 2-link IK solver with floor avoidance
+└── FakeCursor.js  — Custom cursor hidden during grab sequences
+```
+
+### Tech Stack
+
+- Three.js (3D rendering)
+- Vite (dev server)
+- Zero other dependencies
+
+---
+
+## 中文
 
 一只Three.js工业机械臂，像被链子拴住的狼狗一样追踪你的鼠标——凶猛、顺滑、充满攻击性。
 
-**本地运行：** `npm run dev` → http://localhost:5173
+**试一下：**
 
-## 它能干嘛
+```bash
+git clone https://github.com/ARTHUR-BBU/robot-arm.git
+cd robot-arm
+npm install
+npm run dev
+# 浏览器打开 http://localhost:5173
+```
 
-- **360°鼠标追踪** — 机械臂在整个半球范围内实时跟踪你的光标
-- **捕猎行为系统** — 基于注意力值的状态驱动（潜伏 → 警觉 → 追击 → 冲刺 → 抓取 → 携带 → 释放）
-- **姿态权重中间层** — 核心创新：用连续权重混合替代离散状态机，姿态之间天然平滑过渡，不需要任何缓动代码
-- **工厂场景** — 传送带 + 移动货物箱 + 天车 + 工业氛围
+### 怎么玩
 
-## 核心架构：权重思维
+在页面上移动鼠标，机械臂会：
 
-### 问题
+1. **发现你** — 头转向光标方向，身体还没动
+2. **产生兴趣** — 身体开始压低，夹爪微微收紧
+3. **悄悄靠近** — 像猫科动物一样慢慢逼近
+4. **猛扑** — 突然爆发出击，抓向光标
+5. **叼住** — 一把抓住光标，带着它移动
+6. **松口** — 把光标扔掉，等你再动
 
-传统做法是离散状态机——"站着"跳到"弯腰"跳到"前扑"。每次切换都是生硬的跳变，需要写一堆缓动函数，状态越多过渡组合爆炸。
+机械臂的臂长有限——就像链子拴住的狼狗。它能猛扑出去，但总会被拉回来。试试把鼠标移到很远的地方，看它伸到极限的样子。
 
-### 解法
+### 核心创新：姿态权重中间层
 
-在行为系统和关节控制器之间，插入一层**连续权重**：
+传统做法：站着 → 硬切 → 弯腰 → 硬切 → 前扑。每次跳变生硬，需要写一堆缓动。
+
+我们的做法：**连续权重混合**——
 
 ```
 注意力 + 距离 + 高度（驱动源）
           ↓
   4个姿态锚点 × 权重（0~1 连续值）
           ↓
-  加权平均 → 目标关节值（j2, j3）
+  加权平均 → 目标关节值
           ↓
   lerp 平滑 → 最终姿态
 ```
 
-4个姿态锚点：
+机械臂可以同时是"30%站立 + 70%蓄力"——平滑过渡自然发生，不需要任何缓动代码。
 
-| 锚点 | j2（肩俯仰） | j3（肘弯曲） | 含义 |
+| 锚点 | 肩俯仰 (j2) | 肘弯曲 (j3) | 含义 |
 |------|------------|------------|------|
 | STAND | 0.0 | 0.05 | 竖直站立 |
 | READY | 0.4 | 1.2 | 半弯蓄力 |
 | LUNGE | 0.9 | 0.35 | 前扑 |
 | REACH | 1.2 | 0.15 | 极限伸直 |
-
-注意力低 → 多站；注意力高 + 远距离 → 前扑/伸直。
-
-机械臂可以同时是"30%站立 + 70%蓄力"——这就是权重的力量。**不硬切，不跳变，连续过渡自然发生。**
-
-### 为什么叫"拴住的狼狗"
-
-机械臂的行为节奏：
-
-- 大部分时间站直，微微转头嗅空气（低注意力）
-- 发现目标后身体压低，蓄力（关注）
-- 突然猛扑出去——但受臂长限制，像被链子拴住的狼狗扑向行人，扑到极限再弹回来
-- 抓到目标（鼠标）后叼起来，松口让它坠落
 
 ### 文件结构
 
@@ -63,24 +134,13 @@ src/
 └── FakeCursor.js  — 自定义光标（抓取时隐藏系统光标）
 ```
 
-## 技术栈
+### 技术栈
 
-- **Three.js** — 3D渲染
-- **Vite** — 开发服务器 + 打包
-- 零框架，Three.js之外零依赖
+- Three.js（3D渲染）
+- Vite（开发服务器）
+- 零其他依赖
 
-## 运行
-
-```bash
-npm install
-npm run dev
-```
-
-## 关于权重思维
-
-这个项目中的"姿态权重中间层"是一个通用方法论的具体落地——**权重思维（Weight Thinking）**：不问"是A还是B"，问"A多少、B多少"。适用于3D动画、用户状态、决策系统、任何"离散硬切导致生硬"的场景。
-
-详见 [权重系统与中间层架构](https://github.com/ARTHUR-BBU/robot-arm) 的方法论提炼。
+---
 
 ## License
 
